@@ -1,0 +1,22 @@
+{
+  "name": "Bravo Crew Overtime",
+  "short_name": "Bravo Crew",
+  "description": "Bravo Crew overtime rotation and scheduling",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d141e",
+  "theme_color": "#0d141e",
+  "icons": [
+    {
+      "src": "./assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
