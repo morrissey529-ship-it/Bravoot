@@ -51,6 +51,7 @@
   dialog.innerHTML='<div class="modal ieas-history-modal"><div class="ieas-history-head"><h2 id="ieasHistoryTitle">IE/AS history</h2><button type="button" class="dark" data-ieas-action="close-history">Close</button></div><p class="ieas-small" id="ieasHistoryRange"></p><div id="ieasHistoryRows"></div></div>';
   document.body.appendChild(dialog);
   let roster=[],busy=false,moveBusy=false,reorderMode=false,historyOfficerId=null,lastRole=null;
+  let lastRosterSnapshot='';
   function available(o){return o.available===true;}
   const rotationRows=()=>[...roster].sort((a,b)=>Number(a.position)-Number(b.position));
   function statusText(o){
@@ -158,16 +159,23 @@
     }).join('')||'<p>No Bravo Crew officers were returned.</p>';
   }
   async function load(force){
+    // Don't redraw or alter the controls while an Admin is rearranging officers.
     if(busy)return;
-    if(!force&&(panel.querySelector('.ieas-entry:not([hidden]),.ieas-move-entry:not([hidden])')||dialog.open))return;
+    if(!force&&(moveBusy||reorderMode||panel.querySelector('.ieas-entry:not([hidden]),.ieas-move-entry:not([hidden])')||dialog.open))return;
     busy=true;
     try{
-      // This is the same existing availability/vacation return refresh used by OT List.
-      if(typeof loadAll==='function')await loadAll();
+      // Day-Off OT already refreshes separately; this tab only needs its own roster.
       const data=await api('/rest/v1/rpc/bravo_ieas_list_summary',{method:'POST',auth:false,body:'{}'});
       if(!Array.isArray(data))throw Error('Invalid IE/AS list response');
-      roster=data;
-      render();
+      const snapshot=JSON.stringify(data);
+      // Avoid rebuilding 24 cards and losing focus/scroll position if nothing changed.
+      if(snapshot!==lastRosterSnapshot){
+        roster=data;
+        lastRosterSnapshot=snapshot;
+        const scrollBefore=window.scrollY;
+        render();
+        if(force&&moveBusy)window.scrollTo(0,scrollBefore);
+      }
     }catch(error){notify('Unable to load IE/AS list: '+error.message)}
     finally{busy=false}
   }
@@ -277,7 +285,7 @@
         const row=Array.from(cards.children).find(node=>node.dataset.officerId===officerId);
         const openForm=row&&row.querySelector('.ieas-move-entry');
         const opener=row&&row.querySelector('[data-ieas-action="move-open"]');
-        if(openForm){openForm.hidden=false;if(opener)opener.textContent='Close Move';row.scrollIntoView({block:'center',behavior:'smooth'});}
+        if(openForm){openForm.hidden=false;if(opener)opener.textContent='Close Move';row.scrollIntoView({block:'nearest',behavior:'auto'});}
         return;
       }
       const card=button.closest('.ieas-card');
